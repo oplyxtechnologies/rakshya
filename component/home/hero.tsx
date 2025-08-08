@@ -1,27 +1,41 @@
 "use client";
 import Image from "next/image";
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
+
+type Petal = {
+  left: string;
+  size: number;
+  delay: string;
+  fall: string;
+  sway: string;
+  opacity: number;
+};
+
+function genPetals(count = 24): Petal[] {
+  return Array.from({ length: count }).map((_, i) => ({
+    left: `${(i / count) * 100 + (Math.random() * 3 - 1.5)}vw`,
+    size: 18 + Math.round(Math.random() * 16),
+    delay: `${Math.random() * 6}s`,
+    fall: `${12 + Math.random() * 10}s`,
+    sway: `${4 + Math.random() * 5}s`,
+    opacity: 0.7 + Math.random() * 0.3,
+  }));
+}
 
 export default function HeroSection() {
-  const petals = useMemo(
-    () =>
-      Array.from({ length: 24 }).map((_, i) => ({
-        left: `${(i / 24) * 100 + (Math.random() * 3 - 1.5)}vw`,
-        size: 18 + Math.round(Math.random() * 16), // px width for your SVG
-        delay: `${Math.random() * 6}s`,
-        fall: `${12 + Math.random() * 10}s`,
-        sway: `${4 + Math.random() * 5}s`,
-        opacity: 0.7 + Math.random() * 0.3,
-      })),
-    []
-  );
+  // No random values on SSR — start empty, fill after mount.
+  const [petals, setPetals] = useState<Petal[]>([]);
+
+  useEffect(() => {
+    setPetals(genPetals(24));
+  }, []);
 
   return (
     <section className="relative min-h-screen w-full overflow-hidden">
-      {/* Background image */}
+      {/* Background */}
       <div className="absolute inset-0">
         <Image
-          src="/images/sister-hero.jpg" // ← change to your bg
+          src="/images/sister-hero.jpg"
           alt="A warm memory with my sister"
           fill
           priority
@@ -30,22 +44,25 @@ export default function HeroSection() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
       </div>
 
-      {/* Petals */}
-      <div className="pointer-events-none absolute inset-0">
+      {/* Petals (render only after mount to avoid hydration mismatch) */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        suppressHydrationWarning
+      >
         {petals.map((p, idx) => (
           <span
             key={idx}
             className="absolute"
             style={{ left: p.left, top: "-10vh", opacity: p.opacity }}
           >
-            {/* Outer span handles sway (X) */}
+            {/* X sway */}
             <span
               className="block will-change-transform"
               style={{
                 animation: `petal-sway ${p.sway} ease-in-out ${p.delay} infinite`,
               }}
             >
-              {/* Inner span handles fall + rotation (Y + rotate) */}
+              {/* Y fall + rotate */}
               <span
                 className="block will-change-transform"
                 style={{
@@ -53,13 +70,12 @@ export default function HeroSection() {
                 }}
               >
                 <Image
-                  src="/images/mypetal.svg" // ← your custom SVG goes here
+                  src="/images/mypetal.svg"
                   alt="Petal"
                   width={p.size}
-                  height={p.size} // SVG keeps aspect ratio; adjust if needed
+                  height={p.size}
                   className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.25)] select-none"
                   draggable={false}
-                  priority={idx < 6} // prefetch a few for smoother start
                 />
               </span>
             </span>
